@@ -10,7 +10,17 @@ using Nuke.Common.Utilities.Collections;
 using static Nuke.Common.EnvironmentInfo;
 using static Nuke.Common.IO.FileSystemTasks;
 using static Nuke.Common.IO.PathConstruction;
+using Nuke.Common.CI.GitHubActions;
 
+[GitHubActions(
+    "continuous",
+    GitHubActionsImage.UbuntuLatest,
+    On = new[] { GitHubActionsTrigger.Push },
+    InvokedTargets = new[] { nameof(Compile) },
+    CacheKeyFiles = new[] { "**/global.json", "**/*.csproj" },
+    CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages" },
+    CacheExcludePatterns = new string[0])]
+    
 class Build : NukeBuild
 {
     /// Support plugins are available for:
@@ -20,6 +30,8 @@ class Build : NukeBuild
     ///   - Microsoft VSCode           https://nuke.build/vscode
 
     public static int Main () => Execute<Build>(x => x.Compile);
+
+    GitHubActions GitHubActions => GitHubActions.Instance;
 
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
@@ -41,4 +53,12 @@ class Build : NukeBuild
         {
         });
 
+    Target Print => _ => _
+        .DependsOn(Compile)
+        .Executes(() =>
+    {
+        // Log.Information("Branch = {Branch}", GitHubActions.Ref);
+        Console.WriteLine("Some CI test value");
+        // Log.Information("Commit = {Commit}", GitHubActions.Sha);
+    });
 }
